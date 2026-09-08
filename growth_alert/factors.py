@@ -126,6 +126,7 @@ def financial_features(payload: dict, now: datetime) -> dict:
            "quote_currency": info.get("currency"), "financial_currency": info.get("financialCurrency"),
            "market_cap": number(info.get("marketCap")),
            "fundamental_fetched_at": payload.get("fetched_at"),
+           "fundamental_source": payload.get("source", "Unknown"),
            "source_warnings": payload.get("warnings", []), "statement_period": None}
     if not rev.empty:
         end = rev.index[0]

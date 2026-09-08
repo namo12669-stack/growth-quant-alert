@@ -203,3 +203,18 @@ Artifact ไม่ใช่ฐานข้อมูลถาวร มี retent
 ไม่มี Token หรือ Chat ID ของคุณอยู่ในไฟล์
 ยังไม่ได้ยืนยันการดึงข้อมูล Yahoo และการส่ง Telegram แบบ end-to-end จากสภาพแวดล้อมจัดทำนี้
 จึงต้องทำขั้นตอน Demo แล้วตามด้วย Manual live scan บน GitHub ของคุณ
+
+## V1.1 - แก้ปัญหา `Data usable: 0/40`
+
+V1.1 เปลี่ยน data architecture ดังนี้:
+
+- ราคายังคงใช้ Yahoo/yfinance สำหรับ daily/intraday market data
+- ถ้างบ Yahoo ขาด ระบบจะลองใช้ SEC EDGAR Company Facts เป็น fallback สำหรับงบที่ยื่นต่อ SEC
+- การขาด EPS revision, valuation หรือ fundamental field บางตัวจะลด `Coverage` และ `Confidence` ของหุ้นนั้น แทนที่จะทำให้หุ้นทั้ง universe ใช้งานไม่ได้
+- safety gate ระดับทั้งระบบดูจาก **current price availability** เป็นหลัก ส่วน fundamental coverage ถูกประเมินแยกรายหุ้น
+- cache รุ่นเก่าจะถูก invalidate อัตโนมัติหลังอัปเกรดเป็น V1.1
+
+ถ้าต้องการระบุตัวตนให้ SEC ชัดเจนขึ้น ให้สร้าง GitHub Actions secret ชื่อ `SEC_USER_AGENT` เช่น
+`Your Name your-email@example.com` ตามนโยบายการเข้าถึงข้อมูลของ SEC. หากไม่ตั้ง ระบบจะใช้ชื่อโปรเจกต์และ URL repository เป็นค่าเริ่มต้น
+
+หลังอัปโหลด V1.1 ให้ไปที่ **Actions -> Growth Alerts -> Run workflow -> mode = manual** และรันใหม่ จากนั้นดูบรรทัด `Price usable`, `Fundamental usable`, `Eligible`, `Coverage` และ `Confidence` ในผลลัพธ์

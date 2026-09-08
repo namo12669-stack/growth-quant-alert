@@ -25,16 +25,16 @@ def build_message(selected: list[dict], speculative: list[dict], meta: dict, cfg
     title = "DEMO - SYNTHETIC DATA - NOT LIVE" if meta.get("demo") else "GROWTH RESEARCH ALERT"
     lines = [title, f"{meta['mode'].upper()} | {local:%Y-%m-%d %H:%M %Z}",
              f"Model {cfg['model_version']} | seed universe, not all US stocks",
-             f"Data usable: {meta.get('usable', 0)}/{meta.get('requested', 0)} | Eligible: {meta.get('eligible', 0)}",
+             f"Price usable: {meta.get('usable', 0)}/{meta.get('requested', 0)} | Fundamental usable: {meta.get('fundamental_usable', 0)}/{meta.get('requested', 0)} | Eligible: {meta.get('eligible', 0)}",
              f"Benchmark context (last completed session): {meta.get('market_context', 'UNAVAILABLE')}"]
     if meta.get("data_degraded"):
-        lines += ["DATA QUALITY ALERT: too few current observations. Candidate alerts withheld."]
+        lines += ["DATA QUALITY ALERT: too few current price observations. Candidate alerts withheld."]
     if meta.get("state_restored") is False:
         lines.append("Fresh state: no previous alert history was available.")
     if not selected:
         lines.append("\nNo new/changed core candidates passed all alert conditions.")
     for i, r in enumerate(selected, 1):
-        lines += ["", f"{i}. {r['symbol']} | Research score {r['score']:.1f}/100 | Coverage {r['coverage']:.0%}",
+        lines += ["", f"{i}. {r['symbol']} | Research score {r['score']:.1f}/100 | Coverage {r['coverage']:.0%} | Confidence {r.get('confidence', 'N/A')}",
                   f"{r.get('sector', 'Unknown')} | {', '.join(r.get('triggers', []))}",
                   "Growth / Quality / Expectations / Momentum / Valuation",
                   " / ".join(f"{r.get(f + '_score', 50):.0f}" for f in ("growth", "quality", "expectations", "momentum", "valuation")),
@@ -47,16 +47,16 @@ def build_message(selected: list[dict], speculative: list[dict], meta: dict, cfg
         else:
             lines.append(f"PRIOR CLOSE ONLY: {money(r.get('previous_close'))} on {r.get('price_date', 'N/A')}; no fresh intraday confirmation")
         lines.append(f"Drivers: {', '.join(r.get('drivers', [])) or 'N/A'}")
-        lines.append(f"Statement period: {r.get('statement_period') or 'N/A'} | Fetched: {r.get('fundamental_fetched_at') or 'N/A'}")
+        lines.append(f"Fundamentals: {r.get('fundamental_source', 'Unknown')} | Statement: {r.get('statement_period') or 'N/A'}")
         important = [f for f in r.get("flags", []) if f != "EPS_PERIOD_ROLLOVER_NOT_INDEPENDENTLY_VERIFIED"]
-        lines.append("Risks/data: " + (", ".join(important[:4]) or "No configured flag; other risks may exist"))
+        lines.append("Risks/data: " + (", ".join(important[:5]) or "No configured flag; other risks may exist"))
     if speculative:
         lines += ["", "SPECULATIVE PRICE WATCH - NO RESEARCH SCORE"]
         for r in speculative:
             lines.append(f"{r['symbol']}: {money(r.get('intraday_price'))}, {pct(r.get('session_return'))}; bar end {r.get('quote_time')}")
         lines.append("Price movement only; catalyst and funding risk not independently verified.")
     lines += ["", "Score is a research rank, NOT a win probability or a buy/sell instruction.",
-              "Yahoo may be delayed/incomplete. EPS period rollover is unverified; no news or earnings-surprise confirmation.",
+              "Price data may be delayed/incomplete. Fundamentals can use SEC filing fallback; analyst revisions remain Yahoo snapshots when available.",
               "No broker connection. Verify official filings and a reliable quote before acting."]
     return "\n".join(lines)
 
@@ -73,7 +73,6 @@ def write_outputs(ranked: list[dict], selected: list[dict], speculative: list[di
         for k, v in list(r.items()):
             if isinstance(v, list):
                 r[k] = " | ".join(str(x) for x in v)
-        # Avoid spreadsheet formula interpretation when users open external text fields.
         for k, v in list(r.items()):
             if isinstance(v, str) and v[:1] in ("=", "+", "-", "@"):
                 r[k] = "'" + v
@@ -81,6 +80,5 @@ def write_outputs(ranked: list[dict], selected: list[dict], speculative: list[di
         flat.append(clean(r))
     pd.DataFrame(flat).to_csv(root / "ranking.csv", index=False, encoding="utf-8-sig")
     (root / "telegram_preview.txt").write_text(message + "\n", encoding="utf-8")
-    # Render untrusted provider text as a code block in the GitHub summary.
     safe_message = message.replace("```", "'''")
     (root / "summary.md").write_text("# Growth Research Alert\n\n```text\n" + safe_message + "\n```\n", encoding="utf-8")

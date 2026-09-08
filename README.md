@@ -117,3 +117,6 @@ The initial environment could not reach package/data endpoints. Offline logic te
 - Exchange calendar library: https://github.com/gerrymanoim/exchange_calendars
 
 Yahoo/yfinance is unofficial and intended for research/personal use subject to the provider's terms. Keep data artifacts private and verify redistribution rights independently. Software license does not grant market-data rights.
+
+### V1.1 data resilience
+V1.1 uses Yahoo/yfinance for price data and can fall back to SEC EDGAR Company Facts for core filed fundamentals when Yahoo statement tables are unavailable. Missing optional factors lower per-stock coverage/confidence rather than automatically degrading the entire run. The whole-run safety gate is based on current price-data availability. SEC data is a live filing snapshot and is not a point-in-time historical consensus database.

@@ -13,7 +13,7 @@ from .alerts import choose_alerts, choose_speculative
 from .calendar import NY, due_mode
 from .config import load_config, load_universe
 from .demo import demo_records
-from .factors import financial_features, price_features
+from .factors import financial_features, price_features, finite
 from .intraday import intraday_features
 from .provider import YahooProvider
 from .report import build_message, write_outputs
@@ -52,14 +52,14 @@ def run(cfg: dict, universe: dict, mode: str = "auto", dry_run: bool = False,
     if not dry_run and messenger is None:
         messenger = TelegramClient.from_env()
     meta = {"as_of": started.isoformat(), "started_at": started.isoformat(), "mode": mode,
-            "demo": demo, "requested": len(universe["core"]), "usable": 0, "eligible": 0,
+            "demo": demo, "requested": len(universe["core"]), "usable": 0, "fundamental_usable": 0, "eligible": 0,
             "state_restored": restored, "errors": [], "version": __version__,
             "market_context": "UNAVAILABLE", "data_degraded": False,
             "score_as_of": "last completed regular session; fundamentals fetched during scan"}
     records, speculative = [], []
     if demo:
         records = demo_records(started, cfg)
-        meta.update(requested=len(records), usable=len(records), market_context="SYNTHETIC - NO LIVE MARKET OBSERVATION")
+        meta.update(requested=len(records), usable=len(records), fundamental_usable=len(records), market_context="SYNTHETIC - NO LIVE MARKET OBSERVATION")
         ranked = score_records(records, cfg)
     else:
         provider = provider or YahooProvider(cfg, clock)
@@ -78,8 +78,10 @@ def run(cfg: dict, universe: dict, mode: str = "auto", dry_run: bool = False,
                 financial = provider.fundamentals(symbol)
                 record = {"symbol": symbol, **financial_features(financial, clock()),
                           **price_features(prices, started, cfg["calendar"])}
-                if record.get("daily_price_valid") and record.get("statement_period"):
+                if record.get("daily_price_valid"):
                     meta["usable"] += 1
+                if record.get("statement_period") and any(finite(record.get(k)) for k in ("revenue_yoy", "operating_margin_change", "gross_profit_assets", "cfo_assets")):
+                    meta["fundamental_usable"] += 1
                 records.append(record)
                 LOG.info("Scanned %s (%d/%d)", symbol, index, len(universe["core"]))
             except Exception as exc:
@@ -87,8 +89,10 @@ def run(cfg: dict, universe: dict, mode: str = "auto", dry_run: bool = False,
                 meta["errors"].append(f"{symbol}:{type(exc).__name__}")
                 LOG.warning("Provider data unavailable for %s (%s)", symbol, type(exc).__name__)
         ranked = score_records(records, cfg)
+        # Data-degraded mode is driven by current price availability. Missing fundamentals
+        # reduce coverage/confidence per stock instead of suppressing the entire universe.
         success = meta["usable"] / max(1, meta["requested"])
-        meta["data_degraded"] = success < cfg["data"].get("min_data_success_ratio", .70)
+        meta["data_degraded"] = success < cfg["data"].get("min_price_data_success_ratio", .70)
         if not meta["data_degraded"]:
             shortlist = [r for r in ranked if r["eligible"] and r["score"] >= cfg["alerts"]["min_score"]]
             shortlist = shortlist[:cfg["data"]["intraday_scan_limit"]]

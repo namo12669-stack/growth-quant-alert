@@ -1,5 +1,5 @@
 # Research hypotheses, NOT optimized or backtested weights.
-model_version: growth-alert-v1.0
+model_version: growth-alert-v1.1
 calendar: XNYS
 display_timezone: Asia/Bangkok
 benchmark: QQQ
@@ -14,12 +14,14 @@ filters:
   min_dollar_volume_20d: 10000000
   min_revenue_yoy: 0.10
   max_statement_age_days: 190
-  min_score_coverage: 0.60
+  min_score_coverage: 0.45
   min_rank_pool: 8
   excluded_sectors: [Financial Services, Real Estate]
 scoring:
   min_peers: 5
   missing_penalty: 12.0
+  medium_confidence_coverage: 0.60
+  high_confidence_coverage: 0.80
   # Weights must total 1. Missing features stay neutral; no reweighting.
   family_weights:
     growth: 0.25
@@ -53,4 +55,8 @@ data:
   min_rvol_history_days: 5
   output_dir: output
   state_dir: state
-  min_data_success_ratio: 0.70
+  # Whole-run safety gate is based on current daily-price availability.
+  # Missing fundamentals lower each stock's coverage instead of blocking all alerts.
+  min_price_data_success_ratio: 0.70
+  enable_sec_fallback: true
+  sec_user_agent_default: "growth-quant-alert/1.1 github.com/namo12669-stack/growth-quant-alert"
