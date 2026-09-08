@@ -1,0 +1,50 @@
+# An editable SEED universe, NOT an exhaustive US universe or a buy list.
+# Listing status and reported growth are rechecked from the provider on every run.
+# No claim is made that every seed currently qualifies as a growth stock.
+core:
+  - DDOG
+  - NET
+  - CRWD
+  - ZS
+  - PANW
+  - SNOW
+  - MDB
+  - CFLT
+  - GTLB
+  - DUOL
+  - HUBS
+  - TTD
+  - SHOP
+  - MELI
+  - SE
+  - CELH
+  - CAVA
+  - WING
+  - ONON
+  - ELF
+  - HIMS
+  - TOST
+  - APP
+  - PLTR
+  - ALAB
+  - ARM
+  - AMD
+  - AVGO
+  - ANET
+  - VRT
+  - CLS
+  - TMDX
+  - NTRA
+  - INSP
+  - PODD
+  - AXON
+  - RKLB
+  - IOT
+  - FOUR
+  - BILL
+# User-interest/event-risk candidates are explicitly kept out of the core ranks.
+# These receive a PRICE/EVENT WATCH label and never a research score.
+speculative:
+  - IONQ
+  - OKLO
+  - RGTI

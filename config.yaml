@@ -1,0 +1,56 @@
+# Research hypotheses, NOT optimized or backtested weights.
+model_version: growth-alert-v1.0
+calendar: XNYS
+display_timezone: Asia/Bangkok
+benchmark: QQQ
+schedule:
+  # The workflow starts at 08:37, 12:07 and 15:07 America/New_York.
+  # The midday run is active only on early-close sessions.
+  earliest_minutes_before: 75
+  latest_minutes_before: 10
+filters:
+  min_price_usd: 5.0
+  min_market_cap_usd: 500000000
+  min_dollar_volume_20d: 10000000
+  min_revenue_yoy: 0.10
+  max_statement_age_days: 190
+  min_score_coverage: 0.60
+  min_rank_pool: 8
+  excluded_sectors: [Financial Services, Real Estate]
+scoring:
+  min_peers: 5
+  missing_penalty: 12.0
+  # Weights must total 1. Missing features stay neutral; no reweighting.
+  family_weights:
+    growth: 0.25
+    quality: 0.25
+    expectations: 0.20
+    momentum: 0.20
+    valuation: 0.10
+alerts:
+  top_n: 5
+  speculative_top_n: 2
+  min_score: 70.0
+  min_score_change: 5.0
+  repeat_after_days: 5
+  premarket_gap_up: 0.02
+  premarket_gap_down: -0.04
+  intraday_return: 0.015
+  min_rvol: 1.5
+  max_quote_age_minutes: 25
+  max_snapshot_age_minutes: 30
+  # Maximum wall-clock scan duration; fail closed instead of sending old signals.
+  max_run_minutes: 25
+  send_empty_summary: true
+  max_alerts_per_sector: 2
+  enable_speculative: true
+data:
+  fundamental_cache_hours: 4
+  fallback_cache_hours: 36
+  request_attempts: 2
+  request_pause_seconds: 0.15
+  intraday_scan_limit: 12
+  min_rvol_history_days: 5
+  output_dir: output
+  state_dir: state
+  min_data_success_ratio: 0.70
