@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 TABLE_NAMES = ("income", "cashflow", "balance", "eps_trend", "eps_revisions")
 INFO_FIELDS = ("shortName", "longName", "sector", "industry", "currency", "financialCurrency",
                "marketCap", "enterpriseValue", "quoteType")
-PROVIDER_CACHE_VERSION = 2
+PROVIDER_CACHE_VERSION = 3
 
 
 def pack_payload(payload: dict) -> dict:
@@ -76,6 +76,14 @@ class YahooProvider:
             raise RuntimeError("Install requirements.txt before running the live provider") from exc
         self.yf = yf
         self.cfg = cfg
+        # Explicit browser-like curl_cffi session. Shared cloud IPs (including CI runners)
+        # are more likely to be throttled by Yahoo when plain requests are used.
+        self.session = None
+        try:
+            from curl_cffi import requests as curl_requests
+            self.session = curl_requests.Session(impersonate="chrome")
+        except Exception:
+            LOG.warning("curl_cffi session unavailable; Yahoo may throttle this runner")
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.cache = Path(cfg["data"]["state_dir"]) / "fundamentals"
         self.cache.mkdir(parents=True, exist_ok=True)
@@ -85,7 +93,7 @@ class YahooProvider:
 
     def ticker(self, symbol: str):
         if symbol not in self.tickers:
-            self.tickers[symbol] = self.yf.Ticker(symbol)
+            self.tickers[symbol] = self.yf.Ticker(symbol, session=self.session) if self.session is not None else self.yf.Ticker(symbol)
         return self.tickers[symbol]
 
     def _call(self, fn: Callable):
@@ -99,6 +107,53 @@ class YahooProvider:
                 error = exc
                 time.sleep(min(2 ** attempt, 4))
         raise RuntimeError(f"Provider request failed ({type(error).__name__})") from None
+
+
+    def batch_daily(self, symbols: list[str]) -> dict[str, pd.DataFrame]:
+        """Fetch daily OHLCV for many symbols in one Yahoo request batch.
+
+        This is deliberately the primary price path on GitHub Actions: making one
+        Ticker.history request per symbol can trigger Yahoo throttling on shared CI IPs.
+        Missing symbols are returned as empty frames and may be retried individually.
+        """
+        symbols = list(dict.fromkeys(str(s).upper() for s in symbols if s))
+        if not symbols:
+            return {}
+        kwargs = dict(
+            tickers=" ".join(symbols), period="2y", interval="1d",
+            group_by="ticker", auto_adjust=False, actions=False,
+            threads=True, progress=False, timeout=30,
+        )
+        if self.session is not None:
+            kwargs["session"] = self.session
+        try:
+            frame = self._call(lambda: self.yf.download(**kwargs))
+        except Exception as exc:
+            LOG.warning("Batch daily download failed (%s)", type(exc).__name__)
+            return {s: pd.DataFrame() for s in symbols}
+        result: dict[str, pd.DataFrame] = {}
+        if frame is None or frame.empty:
+            return {s: pd.DataFrame() for s in symbols}
+        if isinstance(frame.columns, pd.MultiIndex):
+            level0 = set(map(str, frame.columns.get_level_values(0)))
+            level1 = set(map(str, frame.columns.get_level_values(1)))
+            for symbol in symbols:
+                try:
+                    if symbol in level0:
+                        sub = frame[symbol].copy()
+                    elif symbol in level1:
+                        sub = frame.xs(symbol, axis=1, level=1).copy()
+                    else:
+                        sub = pd.DataFrame()
+                    result[symbol] = sub.dropna(how="all")
+                except Exception:
+                    result[symbol] = pd.DataFrame()
+        else:
+            # yfinance returns a single-level frame when only one symbol is requested.
+            result[symbols[0]] = frame.dropna(how="all")
+            for symbol in symbols[1:]:
+                result[symbol] = pd.DataFrame()
+        return result
 
     def daily(self, symbol: str) -> pd.DataFrame:
         return self._call(lambda: self.ticker(symbol).history(

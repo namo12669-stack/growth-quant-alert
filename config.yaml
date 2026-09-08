@@ -1,5 +1,5 @@
 # Research hypotheses, NOT optimized or backtested weights.
-model_version: growth-alert-v1.1
+model_version: growth-alert-v1.2
 calendar: XNYS
 display_timezone: Asia/Bangkok
 benchmark: QQQ

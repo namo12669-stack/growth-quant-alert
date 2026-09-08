@@ -29,6 +29,12 @@ def build_message(selected: list[dict], speculative: list[dict], meta: dict, cfg
              f"Benchmark context (last completed session): {meta.get('market_context', 'UNAVAILABLE')}"]
     if meta.get("data_degraded"):
         lines += ["DATA QUALITY ALERT: too few current price observations. Candidate alerts withheld."]
+        if meta.get("price_failure_summary"):
+            lines.append("Price diagnostics: " + meta["price_failure_summary"])
+        if meta.get("price_failure_examples"):
+            lines.append("Examples: " + meta["price_failure_examples"])
+        if meta.get("usable", 0) == 0:
+            lines.append("Likely provider/network throttling on the CI runner; V1.2 uses batch download + browser-like curl_cffi session before per-symbol fallback.")
     if meta.get("state_restored") is False:
         lines.append("Fresh state: no previous alert history was available.")
     if not selected:

@@ -4,3 +4,5 @@ numpy>=1.26.4,<3.0
 exchange-calendars>=4.11,<5.0
 requests>=2.32.4,<3.0
 PyYAML>=6.0.2,<7.0
+
+curl_cffi>=0.15,<1.0

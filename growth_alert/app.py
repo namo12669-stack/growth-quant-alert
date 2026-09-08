@@ -63,21 +63,40 @@ def run(cfg: dict, universe: dict, mode: str = "auto", dry_run: bool = False,
         ranked = score_records(records, cfg)
     else:
         provider = provider or YahooProvider(cfg, clock)
+        # Price-first architecture: one batch request prevents 40 sequential Yahoo
+        # history calls from exhausting/throttling a shared GitHub Actions IP.
+        daily_map = {}
+        if hasattr(provider, "batch_daily"):
+            try:
+                daily_map = provider.batch_daily([cfg["benchmark"], *universe["core"]])
+            except Exception as exc:
+                meta["errors"].append(f"BATCH_PRICE:{type(exc).__name__}")
         try:
-            bench = price_features(provider.daily(cfg["benchmark"]), started, cfg["calendar"])
+            bench_prices = daily_map.get(cfg["benchmark"])
+            if bench_prices is None or bench_prices.empty:
+                bench_prices = provider.daily(cfg["benchmark"])
+            bench = price_features(bench_prices, started, cfg["calendar"])
             if bench.get("daily_price_valid") and bench.get("above_sma200") is not None:
                 condition = "ABOVE" if bench["above_sma200"] else "BELOW"
                 meta["market_context"] = f"{cfg['benchmark']} {condition} 200-day SMA on {bench['price_date']} (context only)"
         except Exception as exc:
             meta["errors"].append(f"BENCHMARK:{type(exc).__name__}")
+        price_failures = {}
         for index, symbol in enumerate(universe["core"], 1):
             if time.monotonic() - runtime_start > cfg["alerts"]["max_run_minutes"] * 60:
                 raise RuntimeError("Scan exceeded its freshness budget; candidate alerts withheld")
             try:
-                prices = provider.daily(symbol)
+                prices = daily_map.get(symbol)
+                if prices is None or prices.empty:
+                    # Retry only the symbols absent from the batch.
+                    prices = provider.daily(symbol)
+                pf = price_features(prices, started, cfg["calendar"])
+                if not pf.get("daily_price_valid"):
+                    price_failures[symbol] = f"LAST_DATE={pf.get('price_date') or 'NONE'}"
+                # Fetch fundamentals after price acquisition; missing fundamentals are
+                # allowed and reduce factor coverage rather than suppressing price data.
                 financial = provider.fundamentals(symbol)
-                record = {"symbol": symbol, **financial_features(financial, clock()),
-                          **price_features(prices, started, cfg["calendar"])}
+                record = {"symbol": symbol, **financial_features(financial, clock()), **pf}
                 if record.get("daily_price_valid"):
                     meta["usable"] += 1
                 if record.get("statement_period") and any(finite(record.get(k)) for k in ("revenue_yoy", "operating_margin_change", "gross_profit_assets", "cfo_assets")):
@@ -86,8 +105,16 @@ def run(cfg: dict, universe: dict, mode: str = "auto", dry_run: bool = False,
                 LOG.info("Scanned %s (%d/%d)", symbol, index, len(universe["core"]))
             except Exception as exc:
                 records.append({"symbol": symbol, "sector": "Unknown", "source_warnings": ["PROVIDER_FAILURE"]})
-                meta["errors"].append(f"{symbol}:{type(exc).__name__}")
-                LOG.warning("Provider data unavailable for %s (%s)", symbol, type(exc).__name__)
+                error_name = type(exc).__name__
+                price_failures[symbol] = error_name
+                meta["errors"].append(f"{symbol}:{error_name}")
+                LOG.warning("Provider data unavailable for %s (%s)", symbol, error_name)
+        if price_failures:
+            # Safe diagnostics only: exception class / observed last date, never URLs or tokens.
+            from collections import Counter
+            counts = Counter(price_failures.values())
+            meta["price_failure_summary"] = ", ".join(f"{k} x{v}" for k, v in counts.most_common(5))
+            meta["price_failure_examples"] = ", ".join(f"{k}:{v}" for k, v in list(price_failures.items())[:5])
         ranked = score_records(records, cfg)
         # Data-degraded mode is driven by current price availability. Missing fundamentals
         # reduce coverage/confidence per stock instead of suppressing the entire universe.
