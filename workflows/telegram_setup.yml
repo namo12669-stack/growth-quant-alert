@@ -1,13 +1,10 @@
 name: Telegram Setup
-
-on:
+"on":
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
-  connect:
+  setup:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -16,9 +13,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
-      - run: python -m pip install 'requests>=2.32.4,<3'
-      - name: Send chat ID privately to your Telegram
+          python-version: '3.12'
+      - run: python -m pip install 'requests>=2.32.4,<3.0'
+      - name: Send chat ID privately
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: python scripts/telegram_setup.py
