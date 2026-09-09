@@ -1,122 +1,155 @@
-# Growth Quant Alert
+# Quant Signals V2 - Growth Watchlist / Telegram
 
-**Research-oriented US growth-stock alerts for GitHub Actions and Telegram. No broker, no orders, no automatic trading.**
+**Research-only signal detector. No broker connection, no orders, no claimed win probability.**
 
-**Thai setup guide: [START_HERE_TH.md](START_HERE_TH.md)**
+V2 replaces the V1 fundamental ranking flow with separate, inspectable signal engines.
+It does **not** wait for Yahoo financial statements. It does **not** alert merely because
+OKLO or another speculative stock has moved +/-4%.
 
-Version 1.0 | 8 September 2026 | Research hypothesis, not a validated alpha model.
+## What it detects
 
-## What this project actually does
+| Family | Operational definition | Data / status |
+|---|---|---|
+| RSI divergence | Lower confirmed price low with higher RSI, or the bearish mirror; latest-close confirmation | Completed daily bars; waits 3 bars to confirm a pivot |
+| Breakout + volume | Close above prior 20-session high, volume >=1.5x prior mean, close in upper part of range | Daily confirmed; 15m preclose variant is explicitly PROVISIONAL |
+| Relative-strength breakout | Stock/proxy ratio above prior 63-session high, positive absolute return, >=3 percentage points of 20-session outperformance, above SMA50 | Completed daily bars; proxy is configured, not auto-verified |
+| Pair spread | Frozen 252-session model, cointegration + stationarity screens, 63-session holdout stability, newly crossing 2 sigma, below 3.5 sigma | EXPERIMENTAL relative-value watch; not a buy call on either leg |
+| Lead-lag | Today's leader return used to forecast next-session follower return, controlling for lagged follower and market returns; walk-forward validation and multiple-testing screens | EXPERIMENTAL one-session model; never inferred from same-day correlation alone |
 
-Scans an editable 40-name seed universe, applies price/liquidity/growth/data-quality filters, computes 13 transparent factors, and sends up to 5 new or changed research candidates. A separate 3-name speculative watchlist gets price-movement notices without a quant score. The seed list is not an exhaustive market universe, a current listing certification, or an investment recommendation.
+Prior volatility compression is extra breakout context, not a sixth independent edge.
+The complete formulas and caveats are in [docs/SIGNAL_RULES.md](docs/SIGNAL_RULES.md).
 
-Default scoring families: growth 25%, profitability/cash quality 25%, expectations 20%, momentum 20%, valuation 10%. Weights differ slightly from the conceptual research proposal to reflect this free-data implementation. They have not been optimized or backtested. Exact feature definitions, peer pools and proxy limitations are documented in [docs/FACTOR_REGISTRY.md](docs/FACTOR_REGISTRY.md).
+**HIGH/WATCH is a deterministic display priority, not calibrated confidence.**
+No signal family has been validated for profitability on your live watchlist by this package.
+The demo is deliberately constructed synthetic data, including a synthetic lead-lag process.
 
-This implementation includes a replaceable Yahoo/yfinance adapter, not SEC extraction, paid consensus feeds, news sentiment, revenue/earnings-surprise verification, event calendars, broker connectivity or a historical point-in-time backtest. EPS revisions are provisional Yahoo snapshots with an unverified fiscal-year-rollover limitation. Cash-flow metrics are practical proxies, not exact replications of every research paper.
+## Upgrade an existing V1.2 repository
 
-## Setup in seven steps
+Keep the same private GitHub repository and the same two Actions secrets:
 
-1. Create a NEW Telegram bot using the official `@BotFather` and `/newbot`. Send `/start` to your new bot in a private chat.
-2. Create a **private** GitHub repository and upload the CONTENTS of the extracted project. `main.py` and `.github/` must be at repository root. Do not upload only the ZIP or put the whole project inside another directory.
-3. Open repository **Settings > Secrets and variables > Actions > New repository secret**. Save `TELEGRAM_BOT_TOKEN`.
-4. Open **Actions > Telegram Setup > Run workflow**. The helper sends your chat ID privately to your Telegram. It refuses shared/private-chat ambiguity and existing webhooks.
-5. Save the received value as a second repository secret, `TELEGRAM_CHAT_ID`.
-6. Open **Actions > Growth Alerts > Run workflow**. Choose `mode: demo`, leaving `dry_run` unchecked. You should receive a clearly labelled **SYNTHETIC DATA - NOT LIVE** message. Demo is not a live-data test and never changes production alert history.
-7. Run again with `mode: manual` for a live scan. Check the workflow run, Telegram and report artifacts. Schedule entries are already included; scheduled workflows must be on your default branch.
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
 
-If `.github/` did not upload through your browser, create `.github/workflows/alerts.yml`, `telegram_setup.yml`, and `tests.yml` with **Add file > Create new file**, copying the corresponding contents. GitHub Desktop is another way to preserve all dot-folders.
+Unzip and upload the **contents**, with `main.py` at repository root. Replace the existing
+`.github/workflows/alerts.yml`; its displayed name becomes **Quant Signals V2**.
+Do not upload just the ZIP. Do not put an extra project folder around `main.py`.
 
-No GitHub or Telegram account has been connected by the delivered files. You must complete setup yourself. Do not send bot tokens to other people or commit them. Rotate exposed tokens with BotFather.
+Required layout:
 
-## Schedule and delivery boundaries
-
-The workflow is written for **GitHub.com**, with `timezone: America/New_York`:
-
-| NY start time | Purpose |
-|---|---|
-| 08:37, weekdays | Pre-open scan |
-| 12:07, weekdays | Early-close scan; ordinary full sessions skip it |
-| 15:07, weekdays | Ordinary pre-close scan; early-close sessions skip it |
-
-Calendar gate: event is 10-75 minutes away. Scheduled scans therefore start about 53 minutes before a normal open/close; actual delivery depends on queueing and data retrieval. No polling every five minutes. At most two scheduled candidate reports per trading day under normal state operation.
-
-`exchange_calendars` XNYS handles supported holidays, DST and half days. Unexpected exchange closures may require an updated package; it is not a live halt service. The runner rechecks the event window before sending and refuses a late candidate report. GitHub scheduling is best-effort, can be delayed/dropped, and is not a real-time trading timer. Public repository schedules can be disabled after inactivity. Check Actions quotas, billing and storage for your account.
-
-`display_timezone: Asia/Bangkok` changes the message display only. Change to `Asia/Singapore` if appropriate; New York scheduling is unchanged.
-
-## Commands
-
-Use Python 3.12 or 3.13. From the repository root:
-
-```bash
-python -m pip install -r requirements.txt
-python main.py --mode demo --dry-run
-python main.py --mode manual --dry-run
-python main.py --mode auto
+```text
+.github/workflows/alerts.yml
+.github/workflows/telegram_setup.yml
+.github/workflows/tests.yml
+quant_alert/
+scripts/
+tests_v2/
+main.py
+config.yaml
+universe.yaml
+requirements.txt
+requirements-dev.txt
+pyproject.toml
 ```
 
-For local sending, set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in your process environment. `.env.example` is documentation; this project deliberately does not auto-load `.env`. Do not put secrets into shell commands that will be committed or published.
+If `.github` disappears during browser upload, open `WORKFLOW_COPY_FOR_GITHUB.txt`, copy its
+contents, and use GitHub **Add file -> Create new file** with the exact filename
+`.github/workflows/alerts.yml`. Replace an existing file through its edit button instead.
+A root-level `workflows/alerts.yml` is not recognized by GitHub Actions.
 
-`auto` observes the calendar/window and per-session deduplication. `manual` runs now and labels the message MANUAL. `demo` uses only synthetic fixtures, although sending still contacts Telegram unless `--dry-run` is used. Dry-run never sends Telegram or changes alert history; a live dry-run may refresh the fundamental cache.
+V2 uses a NEW Python package (`quant_alert`) and a NEW state artifact
+(`quant-signals-v2-state`). Old `growth_alert/` source, V1 reports, and V1 state are not used.
+`tests_v2` is the only test directory invoked by the new workflow. Old unused code may be
+removed later, but do not remove `.github` or your repository settings/secrets.
+Disable any extra custom V1 scheduled workflows that you previously created, to avoid two
+separate programs sending alerts. No SEC secret is required for V2; an existing one is ignored.
 
-## Reports and state
+Detailed setup and troubleshooting: [docs/SETUP.md](docs/SETUP.md).
+Thai quick start: [START_HERE_TH.md](START_HERE_TH.md).
 
-Each live/demo scan writes `output/ranking.csv`, `snapshot.json`, `telegram_preview.txt` and `summary.md`. GitHub also records installed package versions. Detailed JSON contains raw factor values, normalized factor scores, coverage, ranking scopes, exclusions, quote timestamps and limitations.
+## First run
 
-State includes recent confirmed sessions, previous alerts, a forward-observation journal and the most recent cached statements. It is passed between runs using an Actions artifact named `growth-alert-state`, not commits to the repository. Permissions are `contents: read` and `actions: read`; no repository write token is needed. Only the matching default-branch alert workflow's artifact is restored. Restore failures stop the workflow rather than silently restarting empty.
+1. Actions -> **Quant Signals V2** -> **Run workflow** -> `mode: demo`, `dry_run: false`.
+2. Verify that Telegram says `DEMO - SYNTHETIC DATA - NOT LIVE` and `quant-signals-v2.0.0`.
+3. Start a NEW run with `mode: manual`, `dry_run: false` for a live scan. Do not use
+   **Re-run all jobs**, which reuses the old mode.
 
-Reports default to 30-day retention; state to 90 days subject to account policies. **Artifacts are not a permanent database.** Back up `journal.jsonl` periodically. After inactivity, expiration or deletion, the history can restart and old candidates may be treated as new. The state restore safety limit is 100 MB uncompressed; archive older journal data before that point.
+`dry_run: true` writes reports only and does not send messages or mutate alert history.
+Demo mode never reads or changes live alert history, even when it sends a Telegram test.
+A live scan may correctly produce zero new signals. The reports distinguish no pattern,
+rejected models, bad data, expired prediction horizons, and deduplication.
 
-The workflow serializes runs; the application records a session after Telegram confirms all chunks. This is not an exactly-once messaging guarantee. An ambiguous timeout, partial multi-message delivery, or state upload failure can create missed/duplicate notifications. Connection failures are not blindly retried for `sendMessage`; explicit 429 rate limits are retried. No token-bearing URLs are logged.
+## Default schedule
 
-## Reading scores responsibly
+Schedules use `America/New_York`, plus an exchange-calendar check:
 
-A score is a relative research ranking in the eligible seed universe, not a probability, fair value, target price or a buy instruction. Missing factors receive neutral 50, stay at their original weight, reduce weighted coverage, and incur an additional penalty. Missing data is not represented as evidence of strong fundamentals. This method does not mathematically eliminate every possible missing-data advantage; coverage floors and inspection remain important.
-
-Most factors use sector peers when at least five valid peers exist; otherwise they disclose a growth-universe fallback. Valuation never falls back across sectors. The default data-success gate withholds candidate alerts if fewer than 70% of requested core names have a current completed-session price and a statement observation. A minimum eight-name eligible peer pool is required. It is normal for a tiny custom list to yield no ranked candidates.
-
-Daily features exclude the current unfinished regular session. Intraday alerts use only completed five-minute bars, with age checked again at send time. Same-time RVOL compares cumulative volume at the same New York clock time against historical sessions; missing-bar coverage and half days are checked. A recent bar timestamp still does not guarantee an exchange-real-time price. No fresh bar means **PRIOR CLOSE ONLY**, not a made-up premarket move.
-
-Cash-runway-under-four-quarters is a blocking heuristic; dilution, negative FCF, large drawdowns and volatility are flags. None of these constitutes complete financial due diligence. Speculative tickers never enter the core rank pool.
-
-## Troubleshooting
-
-| Symptom | What to check |
+| Start | Meaning |
 |---|---|
-| No Actions workflows | `.github/workflows/` is missing, nested, or not on the default branch |
-| Telegram Setup finds no chat | Send a fresh `/start` to the NEW bot, then rerun; do not run another bot poller |
-| Telegram 401 | Incorrect/revoked BotFather token |
-| Telegram 400/403 | Wrong chat ID, bot not started/blocked, or chat permissions |
-| Setup sees webhook/multiple private chats | Use a separate bot; the helper deliberately does not disconnect another service |
-| Manual live scan shows no candidates | Inspect `exclusions`, `coverage`, seed pool size and data errors; do not assume the code failed |
-| Many provider failures | Yahoo may block/throttle cloud IPs. Reduce the seed list cautiously or replace the provider adapter |
-| No intraday price | Extended-hours data may be missing or too old; prior-close-only is intentional |
-| No automatic message | Holiday, late/skipped queue, disabled schedule, quota limit, expired secret or failed run |
-| Duplicate candidates after long inactivity | State artifact may have expired; check the fresh-state warning |
-| State restore permission failure | Keep `actions: read` and repository Actions/artifact access enabled |
+| 08:37 weekdays | Pre-open scan, 53 minutes before a normal open |
+| 12:07 weekdays | Early-close check; skipped on normal full-session days |
+| 15:07 weekdays | Pre-close scan, 53 minutes before a normal close |
 
-## Testing and research
+Runs must start in the 65-to-10-minute window before the relevant session boundary. There is
+a second check before sending. GitHub scheduling is best effort; queue delays or dropped
+runs are possible. No realtime or second-accurate SLA is implied. Daily bars are only accepted
+after the exchange session is complete plus a 20-minute finalization buffer.
+
+Pre-open scans use **the last completed regular session**, not premarket quotes/news.
+Preclose scans may add **completed 15-minute intraday breakout checks**, comparing cumulative
+volume with the exact same elapsed-session time on prior days. They do not manufacture a
+final daily close. Pair and divergence checks remain daily models.
+
+## Reports and forward monitoring
+
+Each run uploads a reports artifact containing:
+
+- `telegram_preview.txt` and `summary.md`: readable messages and Actions summary.
+- `signals.csv` / `signals.json`: detected signals, including those not selected for delivery.
+- `diagnostics.json`: per-engine checks, price problems, and suppression reasons.
+- `price_diagnostics.csv`: every symbol's latest session, liquidity, and exclusions.
+- `relationships.csv`: every predeclared pair and every tested lead-lag direction, including failures.
+- `inputs/`: consistently adjusted OHLCV input snapshots for inspection/reproduction.
+- `installed_versions.txt`: actual dependencies installed on that GitHub runner.
+- `evaluation/`: descriptive outcomes of earlier delivered alerts, when observations are available.
+
+Successful sends are recorded in the separate `quant-signals-v2-state` artifact:
+`state.json` and `journal.jsonl`. Forward evaluation uses that journal, not invented historical alerts.
+The evaluation assumes a later session open, excludes transaction costs, and is **not a trading
+backtest**. Missing future data stays pending. Overlapping alerts are not independent samples.
+
+## Local execution
+
+Use Python 3.12+ in a virtual environment. Export the two Telegram secrets to your shell for
+non-dry-run sends. `.env` is an example only and is not loaded automatically.
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pytest -q
+python -m pytest tests_v2 -q
+python main.py --mode demo --dry-run
+python main.py --mode manual --dry-run
+python main.py --mode manual
 ```
 
-See [docs/VALIDATION.md](docs/VALIDATION.md) for the actual delivered test results and remaining live checks, and [docs/RESEARCH.md](docs/RESEARCH.md) for primary references and the distinction between academic evidence and implementation hypotheses.
+Offline CSV replay at a known timestamp, with **no Telegram delivery**:
 
-The initial environment could not reach package/data endpoints. Offline logic tests and synthetic runs were executed, but the Yahoo adapter, dependency installation on a fresh GitHub runner and Telegram delivery were NOT exercised end-to-end. The provided CI runs the tests on GitHub; Demo then Manual are your acceptance checks.
+```bash
+python main.py --mode manual --dry-run --data-dir data_local --asof 2026-09-09T12:45:00+00:00
+```
 
-## Operational references
+CSV format and validation details: [docs/VALIDATION.md](docs/VALIDATION.md).
 
-- GitHub scheduling syntax: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule
-- GitHub schedule caveats: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule
-- Repository secrets: https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets
-- Telegram BotFather: https://core.telegram.org/bots/features#botfather
-- Telegram Bot API: https://core.telegram.org/bots/api
-- yfinance documentation and data-use disclaimer: https://ranaroussi.github.io/yfinance/
-- Exchange calendar library: https://github.com/gerrymanoim/exchange_calendars
+## Important limitations
 
-Yahoo/yfinance is unofficial and intended for research/personal use subject to the provider's terms. Keep data artifacts private and verify redistribution rights independently. Software license does not grant market-data rights.
+This is a **fixed seed watchlist**, not an all-market screener or verified current growth classification.
+Peer pairs are test candidates only: no pair is assumed to be predictive or cointegrated.
+Statistical p-value screens do not establish an economic edge or causation. Repeated testing
+across time and user parameter tuning can still produce false discoveries.
 
-### V1.1 data resilience
-V1.1 uses Yahoo/yfinance for price data and can fall back to SEC EDGAR Company Facts for core filed fundamentals when Yahoo statement tables are unavailable. Missing optional factors lower per-stock coverage/confidence rather than automatically degrading the entire run. The whole-run safety gate is based on current price-data availability. SEC data is a live filing snapshot and is not a point-in-time historical consensus database.
+Yahoo/yfinance is an unofficial, personal-research data route and may be throttled, delayed,
+revised, or unavailable. Intraday bars can be incomplete. This code cannot bypass provider
+restrictions and does not guarantee cloud-IP access. CSV input is an offline alternative,
+not a live paid-feed fallback. Provider errors are exposed; stale data is never silently
+promoted to a current signal. Official earnings, news, regulatory catalysts, dilution,
+funding runway, and borrow availability are **not** independently verified.
+
+[Research basis and exact distinctions from published papers](docs/RESEARCH.md).
+[Security, state retention, and data-use considerations](SECURITY.md).

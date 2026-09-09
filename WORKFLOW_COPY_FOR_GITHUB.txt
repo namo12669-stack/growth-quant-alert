@@ -1,0 +1,99 @@
+name: Quant Signals V2
+
+"on":
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'demo = synthetic test; manual = live scan now; auto = market window only'
+        required: true
+        default: demo
+        type: choice
+        options: [demo, manual, auto]
+      dry_run:
+        description: 'Reports only: do NOT send Telegram or update history'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '37 8 * * 1-5'
+      timezone: America/New_York
+    - cron: '7 12 * * 1-5'
+      timezone: America/New_York
+    - cron: '7 15 * * 1-5'
+      timezone: America/New_York
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: quant-signals-v2
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Restore V2 alert history
+        if: github.event_name == 'schedule' || inputs.mode != 'demo'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python scripts/restore_state.py
+      - name: Scan and notify
+        id: scan
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_MODE: ${{ github.event_name == 'schedule' && 'auto' || inputs.mode }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        shell: bash
+        run: |
+          args=(--mode "$RUN_MODE")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python main.py "${args[@]}"
+      - name: Update descriptive forward outcomes
+        if: steps.scan.outcome == 'success' && inputs.mode != 'demo'
+        shell: bash
+        run: |
+          if [ -f state_v2/journal.jsonl ] && [ -d output/inputs ]; then
+            python scripts/evaluate_alerts.py --journal state_v2/journal.jsonl --prices output/inputs
+          fi
+      - name: Record installed versions
+        if: always()
+        run: |
+          mkdir -p output
+          python -m pip freeze > output/installed_versions.txt
+      - name: Add scan summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f output/summary.md ]; then cat output/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Save reports and input snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quant-signals-v2-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/
+          retention-days: 30
+          if-no-files-found: ignore
+      - name: Preserve alert history
+        if: always() && (steps.scan.outcome == 'success' || steps.scan.outcome == 'failure') && inputs.mode != 'demo' && inputs.dry_run != true && hashFiles('state_v2/state.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: quant-signals-v2-state
+          overwrite: true
+          path: state_v2/
+          retention-days: 90
+          if-no-files-found: ignore

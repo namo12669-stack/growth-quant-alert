@@ -1,90 +1,78 @@
-# Research basis and boundaries
+# Research and implementation sources
 
-This project turns broad research themes into a transparent **forward-observation prototype**.
-It is not a replication package or a verified profitable strategy. None of the cited studies
-validates this seed list, current weights, free-data fields, Telegram timing, thresholds or
-transaction-cost assumptions. References were checked against primary publisher/institution
-pages; no third-party ranking website is used as evidence for the scoring model.
+These are sources for concepts and APIs, NOT proof that the exact V2 rules are profitable.
+The project does not reproduce published portfolios, claim their returns, or assert that any
+configured present-day ticker pair is valid. Research descriptions below refer to the source
+abstracts/documentation consulted; no claim is made to have replicated the full studies.
 
-## R1 - Financial analysis of growth stocks
+## Technical pattern recognition
 
-Mohanram, Partha S. (2005). *Separating Winners from Losers among Low Book-to-Market Stocks
-Using Financial Statement Analysis*. Review of Accounting Studies 10, 133-170.
+Lo, Mamaysky and Wang (2000), *Foundations of Technical Analysis: Computational Algorithms,
+Statistical Inference, and Empirical Implementation*.
+https://www.nber.org/papers/w7613
 
-Primary author/institution record:
-https://business.columbia.edu/faculty/research/separating-winners-losers-among-low-book-market-stocks-using-financial-statement
+The paper supports defining chart patterns algorithmically and evaluating conditional outcomes
+rather than relying only on visual labels. Its pattern-recognition method is not V2's RSI-pivot
+algorithm. It does not establish profitability for the exact divergence/breakout thresholds here.
 
-The study motivates combining profitability, cash-flow information, growth stability and
-investment information when examining low-book-to-market firms. This project does **not**
-compute the original eight-point G_SCORE, and revenue-growth-filtered stocks are not the same
-universe as low-book-to-market firms. The prototype omits original R&D/advertising/capex scores.
+## Relative-value pairs
 
-## R2 - Gross profitability
+Gatev, Goetzmann and Rouwenhorst, *Pairs Trading: Performance of a Relative Value Arbitrage Rule*,
+NBER working paper 1999; published version 2006.
+https://www.nber.org/papers/w7032
 
-Novy-Marx, Robert (2013). *The Other Side of Value: The Gross Profitability Premium*.
-Journal of Financial Economics 108(1), 1-28. Earlier NBER Working Paper 15940 (2010).
+The paper's matching rule uses distance in normalized historical price space. V2 instead uses
+an Engle-Granger/frozen-spread screening approach with a holdout. Thus it is conceptually related,
+not a replication, and the original returns must not be transferred to this package.
 
-Primary NBER record:
-https://www.nber.org/papers/w15940
+## Lead-lag versus same-time correlation
 
-Gross profits relative to assets motivate one profitability feature. The implemented latest
-quarter-matched asset denominator and rolling four-quarter income numerator are practical
-choices; do not call them an exact published-portfolio replication. The paper does not certify
-that any individual high-profitability growth stock will outperform.
+Lo and MacKinlay, *When Are Contrarian Profits Due to Stock Market Overreaction?*, working paper
+1989; published version 1990.
+https://www.nber.org/papers/w2977
 
-## R3 - Price momentum
+Cross-autocovariances and lead-lag relations motivate testing chronological dependencies.
+They do not establish a current NVDA -> MRVL or OKLO -> SMR effect. V2 uses a predeclared
+one-session return regression and held-out prediction checks, not a causality claim.
 
-Jegadeesh, Narasimhan, and Sheridan Titman (1993). *Returns to Buying Winners and Selling
-Losers: Implications for Stock Market Efficiency*. Journal of Finance 48(1), 65-91.
+## Statistical implementation
 
-Primary publisher issue record:
-https://afajof.org/issue/volume-48-issue-1/
+Statsmodels augmented Engle-Granger cointegration test:
+https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.coint.html
 
-Intermediate-horizon momentum motivates a separate price family. Our 12-1 convention,
-52-week-high ratio and continuity heuristic are implementation choices, not a claim that all
-three independently replicate the study. Do not infer a next-hour edge from a months-horizon
-research finding. Plain benchmark-subtracted return ranks are not counted again as independent
-relative-strength ranks.
+The null is NO cointegration; the method assumes I(1) inputs. High return correlation is not
+a substitute for testing spread behavior. Finite-sample and time-series specification risks remain.
 
-## R4 - Earnings information versus past returns
+Statsmodels multiple-testing implementation:
+https://www.statsmodels.org/stable/generated/statsmodels.stats.multitest.multipletests.html
 
-Chan, Louis K. C., Narasimhan Jegadeesh, and Josef Lakonishok (1996). *Momentum Strategies*.
-Journal of Finance 51(5), 1681-1713. DOI: 10.1111/j.1540-6261.1996.tb05222.x.
+V2 defaults to Benjamini-Yekutieli (`fdr_by`) across the configured candidate family within one
+scan. This does not cover unlimited rescanning, subjective universe selection, parameter search,
+or misspecified p-values. Holdouts and multiple-testing adjustments reduce some failure modes,
+but cannot establish a usable economic edge by themselves.
 
-Primary publisher issue record:
-https://afajof.org/issue/volume-51-issue-5/
+## Operational sources
 
-The paper provides motivation for distinguishing price momentum from earnings information
-and analysts' forecast response. Our two Yahoo EPS revision fields are limited proxies; actual
-EPS/revenue surprises, pre-release consensus and fiscal-year alignment are not implemented.
-A current `+1y` snapshot is not a historical point-in-time analyst database. Fiscal-period
-rollover can confound a change comparison; every such observation is flagged as unverified.
+GitHub workflow syntax, location, scheduling and timezone:
+https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 
-## Why several attractive ideas were not added as scores
+GitHub scheduled-event behavior and queue-delay limitations:
+https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
 
-High R&D, high capex, large volume, negative P/E or an AI-generated news interpretation are not
-automatically beneficial. The code does not award a standalone permanent growth-quality score
-for those narratives. Volume is a time-specific alert trigger. FCF/assets and margin changes are
-explicitly named practical proxies rather than being mislabelled as exact cash-based-operating-
-profitability research measures.
+GitHub secrets:
+https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions
 
-## Required validation before claiming an edge
+Telegram Bot API:
+https://core.telegram.org/bots/api
 
-The shipped tests check arithmetic and operations, not alpha. A future evaluation should
-pre-register a target horizon, retain the complete contemporaneous eligible universe and
-exclusions, compare to simple growth and momentum baselines, use chronological train/test
-splits, assess incremental value with ablation, control correlated features and repeated tests,
-and examine sector concentration, liquidity and extreme winners. Test multiple market regimes.
+Yfinance download API, multi-index shape, adjustment parameters and intraday constraints:
+https://ranaroussi.github.io/yfinance/reference/api/yfinance.download.html
 
-Use only data known at each decision time. Fiscal period end is not filing-publication time.
-Yahoo statements can be restated, the seed list is selected now, and the snapshot service does
-not establish historical information availability. Therefore, **do not pass today's fundamental
-snapshots into old price history and call the result a valid historical backtest**.
+Yfinance status and data-use disclaimer:
+https://ranaroussi.github.io/yfinance/
 
-The journal starts preserving what this installation observed going forward. For 20/60/120-
-session diagnostics, define a common post-alert observation price rule before analysis, use
-matching benchmark observations, account for overlapping labels and repeated alerts, and
-include delisted/unavailable outcomes instead of silently dropping them. This evaluation engine
-is not included. There is no claimed CAGR, Sharpe, hit rate or expected excess return.
+Exchange-calendar library:
+https://github.com/gerrymanoim/exchange_calendars
 
-The scalar score is a research-priority rank, never a calibrated probability of a gain.
+Consult provider licensing before redistributing market data. Keep this personal research
+repository and its artifacts private. API availability and third-party service terms can change.

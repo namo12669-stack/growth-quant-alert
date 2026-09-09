@@ -21,8 +21,7 @@ def extract_state(data: bytes, destination: Path) -> None:
                 raise ValueError("Unsafe path in state artifact")
             if item.is_dir():
                 continue
-            allowed = item.filename in {"state.json", "journal.jsonl"} or (
-                len(p.parts) == 2 and p.parts[0] == "fundamentals" and p.suffix == ".json")
+            allowed = item.filename in {"state.json", "journal.jsonl"}
             if not allowed:
                 raise ValueError("Unexpected file in state artifact")
             target = destination.joinpath(*p.parts)
@@ -39,7 +38,7 @@ def main() -> int:
     session = requests.Session()
     session.headers.update({"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
     base = f"https://api.github.com/repos/{repo}"
-    response = session.get(base + "/actions/artifacts", params={"name": "growth-alert-state", "per_page": 100}, timeout=30)
+    response = session.get(base + "/actions/artifacts", params={"name": "quant-signals-v2-state", "per_page": 100}, timeout=30)
     response.raise_for_status()
     artifacts = response.json().get("artifacts", [])
     for artifact in sorted(artifacts, key=lambda a: a["created_at"], reverse=True):
@@ -53,7 +52,7 @@ def main() -> int:
             continue
         archive = session.get(base + f"/actions/artifacts/{artifact['id']}/zip", timeout=60)
         archive.raise_for_status()
-        extract_state(archive.content, Path("state"))
+        extract_state(archive.content, Path("state_v2"))
         print("Restored state from the most recent eligible artifact.")
         return 0
     print("No previous state artifact found. This run will start fresh.")

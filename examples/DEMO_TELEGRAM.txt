@@ -1,54 +1,75 @@
 DEMO - SYNTHETIC DATA - NOT LIVE
-DEMO | 2026-09-08 19:40 +07
-Model growth-alert-v1.0 | seed universe, not all US stocks
-Data usable: 16/16 | Eligible: 16
-Benchmark context (last completed session): SYNTHETIC - NO LIVE MARKET OBSERVATION
-Fresh state: no previous alert history was available.
+QUANT SIGNAL ALERT V2
+DEMO | 2026-09-09 19:45 +0700
+Model quant-signals-v2.0.0 | seed watchlist, not all US stocks
+Completed daily session required: 2026-09-08
+Price usable: 6/6 | signals detected: 5
+Selected new alerts: 5 | suppressed: 0
+Fundamentals/news: NOT CHECKED (not a scoring gate)
+Daily patterns use completed sessions; only 15m alerts describe today's incomplete session.
+Context only: DEMO_MKT ABOVE 200-session SMA on 2026-09-08.
+pair_spread: model screens passed 1/2 hypotheses
+lead_lag: model screens passed 1/4 hypotheses
 
-1. DEMO15 | Research score 100.0/100 | Coverage 100%
-Demo Consumer | NEW_QUALIFIED_CANDIDATE
-Growth / Quality / Expectations / Momentum / Valuation
-100 / 100 / 100 / 100 / 100
-Revenue YoY +68.0% | FCF margin +27.3%
-12-1 momentum +69.7% | EPS revision 30d +11.8%
-PRIOR CLOSE ONLY: $76.00 on 2026-09-04; no fresh intraday confirmation
-Drivers: eps_revision_30d, momentum_12_1, revenue_yoy
-Statement period: SYNTHETIC_PERIOD | Fetched: 2026-09-08T12:40:00+00:00
-Risks/data: No configured flag; other risks may exist
+Priority is a display rule, NOT a win probability. Signals are unvalidated research hypotheses.
+Prices may be delayed. No broker connection. Verify an independent quote and company news.
 
-2. DEMO16 | Research score 100.0/100 | Coverage 100%
-Demo Software | NEW_QUALIFIED_CANDIDATE
-Growth / Quality / Expectations / Momentum / Valuation
-100 / 100 / 100 / 100 / 100
-Revenue YoY +72.0% | FCF margin +30.0%
-12-1 momentum +75.0% | EPS revision 30d +13.0%
-PRIOR CLOSE ONLY: $80.00 on 2026-09-04; no fresh intraday confirmation
-Drivers: eps_revision_30d, momentum_12_1, revenue_yoy
-Statement period: SYNTHETIC_PERIOD | Fetched: 2026-09-08T12:40:00+00:00
-Risks/data: No configured flag; other risks may exist
+DEMO - SYNTHETIC DATA - NOT LIVE
+BREAKOUT_VOLUME | DEMO_BREAK
+Direction: bullish | Priority: HIGH
+Data: 2026-09-08 | 1D closed
+WHY ALERTED:
+- Completed close 94.00 exceeds prior 20-session high 90.43
+- Full-session volume 3.20x prior 20-session mean; range position 90%
+Horizon: 5-20 sessions; research hypothesis
+CAUTION: Pattern hypothesis, not a calibrated probability. News and fundamentals NOT checked.
+Event ID: 25687841f29e9f0293e3
 
-3. DEMO13 | Research score 85.7/100 | Coverage 100%
-Demo Consumer | NEW_QUALIFIED_CANDIDATE
-Growth / Quality / Expectations / Momentum / Valuation
-86 / 86 / 86 / 86 / 86
-Revenue YoY +60.0% | FCF margin +22.0%
-12-1 momentum +59.0% | EPS revision 30d +9.4%
-PRIOR CLOSE ONLY: $68.00 on 2026-09-04; no fresh intraday confirmation
-Drivers: eps_revision_30d, momentum_12_1, revenue_yoy
-Statement period: SYNTHETIC_PERIOD | Fetched: 2026-09-08T12:40:00+00:00
-Risks/data: No configured flag; other risks may exist
+DEMO - SYNTHETIC DATA - NOT LIVE
+LEAD_LAG | DEMO_LEAD / DEMO_FOLLOW
+Direction: bullish_follower | Priority: WATCH
+Data: 2026-09-08 | 1D / 1-session lag
+WHY ALERTED:
+- DEMO_LEAD return +4.9%; model estimates DEMO_FOLLOW next-session return +3.7%
+- Increment over own-lag/DEMO_MKT-lag baseline +3.9%; target 2026-09-09
+- Walk-forward MSE improvement 86.5%; adjusted p=2.677e-270
+- Held-out RMSE 0.7% (log return), not a probability interval
+Horizon: Next session close-to-close, NOT an intraday timing signal
+CAUTION: EXPERIMENTAL conditional estimate, not causality or a guaranteed catch-up. Only sent before the target session starts. News/fundamentals NOT checked.
+Event ID: 483fba3f009923c22488
 
-4. DEMO14 | Research score 85.7/100 | Coverage 100%
-Demo Software | NEW_QUALIFIED_CANDIDATE
-Growth / Quality / Expectations / Momentum / Valuation
-86 / 86 / 86 / 86 / 86
-Revenue YoY +64.0% | FCF margin +24.7%
-12-1 momentum +64.3% | EPS revision 30d +10.6%
-PRIOR CLOSE ONLY: $72.00 on 2026-09-04; no fresh intraday confirmation
-Drivers: eps_revision_30d, momentum_12_1, revenue_yoy
-Statement period: SYNTHETIC_PERIOD | Fetched: 2026-09-08T12:40:00+00:00
-Risks/data: No configured flag; other risks may exist
+DEMO - SYNTHETIC DATA - NOT LIVE
+PAIR_SPREAD | DEMO_A / DEMO_B
+Direction: relative_dislocation | Priority: WATCH
+Data: 2026-09-08 | 1D frozen-formation model
+WHY ALERTED:
+- log(DEMO_A) - 1.066*log(DEMO_B) - intercept: Z=-2.50; newly crossed threshold
+- Cointegration adjusted p=0.001955; 63 held-out sessions passed stability screens
+- DEMO_A is relatively lower under this model; estimated half-life 4.7 sessions
+Horizon: Relative spread only; no absolute-return forecast
+CAUTION: EXPERIMENTAL RELATIVE VALUE. Correlation is not cointegration; statistical screens do not guarantee reversion. Either leg may fall. No short order or hedge is placed.
+Event ID: db170b9a0eabaa88a593
 
-Score is a research rank, NOT a win probability or a buy/sell instruction.
-Yahoo may be delayed/incomplete. EPS period rollover is unverified; no news or earnings-surprise confirmation.
-No broker connection. Verify official filings and a reliable quote before acting.
+DEMO - SYNTHETIC DATA - NOT LIVE
+RELATIVE_STRENGTH_BREAKOUT | DEMO_BREAK
+Direction: bullish | Priority: WATCH
+Data: 2026-09-08 | 1D closed
+WHY ALERTED:
+- Stock/DEMO_MKT price ratio exceeds prior 63-session high
+- 20-session return +5.7% vs DEMO_MKT -1.1%; excess +6.8%
+- Absolute return is positive; close above 50-session SMA
+Horizon: 5-20 sessions; research hypothesis
+CAUTION: Pattern hypothesis, not a calibrated probability. News and fundamentals NOT checked.
+Event ID: 41da330900525637d7b4
+
+DEMO - SYNTHETIC DATA - NOT LIVE
+RSI_DIVERGENCE | DEMO_BULL
+Direction: bullish | Priority: WATCH
+Data: 2026-09-08 | 1D confirmed pivots
+WHY ALERTED:
+- Price pivots 39.60 -> 37.50; RSI(14) 0.7 -> 21.0
+- lower low / higher RSI; waited 3 completed bars to confirm second pivot
+- Latest close confirms direction; review level 37.50 (not an automatic stop)
+Horizon: 5-20 sessions; research hypothesis
+CAUTION: Pattern hypothesis, not a calibrated probability. News and fundamentals NOT checked.
+Event ID: 3d3de1715d079af82f17

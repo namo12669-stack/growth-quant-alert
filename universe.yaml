@@ -1,50 +1,42 @@
-# An editable SEED universe, NOT an exhaustive US universe or a buy list.
-# Listing status and reported growth are rechecked from the provider on every run.
-# No claim is made that every seed currently qualifies as a growth stock.
-core:
-  - DDOG
-  - NET
-  - CRWD
-  - ZS
-  - PANW
-  - SNOW
-  - MDB
-  - CFLT
-  - GTLB
-  - DUOL
-  - HUBS
-  - TTD
-  - SHOP
-  - MELI
-  - SE
-  - CELH
-  - CAVA
-  - WING
-  - ONON
-  - ELF
-  - HIMS
-  - TOST
-  - APP
-  - PLTR
-  - ALAB
-  - ARM
-  - AMD
-  - AVGO
-  - ANET
-  - VRT
-  - CLS
-  - TMDX
-  - NTRA
-  - INSP
-  - PODD
-  - AXON
-  - RKLB
-  - IOT
-  - FOUR
-  - BILL
-# User-interest/event-risk candidates are explicitly kept out of the core ranks.
-# These receive a PRICE/EVENT WATCH label and never a research score.
-speculative:
-  - IONQ
-  - OKLO
-  - RGTI
+# Seed watchlist, not all US stocks, not a list of verified investments.
+# Static category/proxy choices are configuration, NOT proof of a relationship.
+market_benchmark: QQQ
+groups:
+  software:
+    benchmark: IGV
+    symbols: [DDOG, NET, SNOW, MDB, GTLB, HUBS, IOT, BILL, TOST, PLTR]
+  cybersecurity:
+    benchmark: IGV
+    symbols: [CRWD, ZS, PANW]
+  semiconductors:
+    benchmark: SOXX
+    symbols: [NVDA, AMD, AVGO, MRVL, ALAB, ARM]
+  infrastructure:
+    benchmark: QQQ
+    symbols: [ANET, VRT, CLS]
+  consumer_growth:
+    benchmark: XLY
+    symbols: [DUOL, CELH, CAVA, WING, ONON, ELF, HIMS]
+  commerce_ads:
+    benchmark: QQQ
+    symbols: [SHOP, MELI, SE, TTD, APP, FOUR]
+  healthcare:
+    benchmark: XLV
+    symbols: [TMDX, NTRA, INSP, PODD]
+  speculative:
+    benchmark: QQQ
+    symbols: [IONQ, RGTI, OKLO, SMR, RKLB, LUNR]
+# Both directions are tested for lead-lag; first/second order is fixed for coint.
+# These are TEST CANDIDATES, not claimed to be cointegrated or predictive.
+relationship_candidates:
+  - [NVDA, AMD]
+  - [NVDA, MRVL]
+  - [AVGO, MRVL]
+  - [CRWD, ZS]
+  - [CRWD, PANW]
+  - [DDOG, NET]
+  - [SHOP, MELI]
+  - [ANET, VRT]
+  - [IONQ, RGTI]
+  - [OKLO, SMR]
+  - [RKLB, LUNR]

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from growth_alert.telegram import TelegramClient, TelegramError
+from quant_alert.telegram import TelegramClient, TelegramError
 
 
 def main() -> int:
@@ -25,9 +25,9 @@ def main() -> int:
     if len(private) != 1:
         raise TelegramError("Expected one private chat. Send /start to your NEW bot and retry. Use a dedicated bot, not a shared one")
     chat_id = next(iter(private))
-    client.send("Growth Alert setup connected.\n\nYour TELEGRAM_CHAT_ID is:\n" + chat_id +
+    client.send("Quant Signals V2 setup connected.\n\nYour TELEGRAM_CHAT_ID is:\n" + chat_id +
                 "\n\nAdd this value as the TELEGRAM_CHAT_ID repository Actions secret. "
-                "Then run Growth Alerts in demo mode.", chat_id=chat_id)
+                "Then run Quant Signals V2 in demo mode.", chat_id=chat_id)
     print("Chat ID was sent privately to your Telegram, not printed in this log.")
     return 0
 

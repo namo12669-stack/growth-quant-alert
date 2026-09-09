@@ -1,62 +1,97 @@
-# Research hypotheses, NOT optimized or backtested weights.
-model_version: growth-alert-v1.2
+model: quant-signals-v2.0.0
 calendar: XNYS
-display_timezone: Asia/Bangkok
-benchmark: QQQ
 schedule:
-  # The workflow starts at 08:37, 12:07 and 15:07 America/New_York.
-  # The midday run is active only on early-close sessions.
-  earliest_minutes_before: 75
+  earliest_minutes_before: 65
   latest_minutes_before: 10
-filters:
-  min_price_usd: 5.0
-  min_market_cap_usd: 500000000
-  min_dollar_volume_20d: 10000000
-  min_revenue_yoy: 0.10
-  max_statement_age_days: 190
-  min_score_coverage: 0.45
-  min_rank_pool: 8
-  excluded_sectors: [Financial Services, Real Estate]
-scoring:
-  min_peers: 5
-  missing_penalty: 12.0
-  medium_confidence_coverage: 0.60
-  high_confidence_coverage: 0.80
-  # Weights must total 1. Missing features stay neutral; no reweighting.
-  family_weights:
-    growth: 0.25
-    quality: 0.25
-    expectations: 0.20
-    momentum: 0.20
-    valuation: 0.10
+  daily_close_grace_minutes: 20
+provider:
+  batch_size: 12
+  threads: 2
+  pause_seconds: 1.0
+  individual_retry_limit: 8
+  daily_period: 2y
+  intraday_period: 1mo
+  timeout_seconds: 20
+  save_input_snapshots: true
+quality:
+  min_daily_bars: 100
+  completeness_window: 120
+  min_completeness: 0.98
+  min_price: 5.0
+  min_average_dollar_volume: 10000000
+  min_universe_fraction: 0.50
+  min_universe_count: 3
+  max_intraday_age_minutes: 25
+  split_cooldown_sessions: 5
 alerts:
-  top_n: 5
-  speculative_top_n: 2
-  min_score: 70.0
-  min_score_change: 5.0
-  repeat_after_days: 5
-  premarket_gap_up: 0.02
-  premarket_gap_down: -0.04
-  intraday_return: 0.015
-  min_rvol: 1.5
-  max_quote_age_minutes: 25
-  max_snapshot_age_minutes: 30
-  # Maximum wall-clock scan duration; fail closed instead of sending old signals.
-  max_run_minutes: 25
+  max_signals: 8
+  max_per_ticker: 2
+  cooldown_hours: 48
   send_empty_summary: true
-  max_alerts_per_sector: 2
-  enable_speculative: true
-data:
-  fundamental_cache_hours: 4
-  fallback_cache_hours: 36
-  request_attempts: 2
-  request_pause_seconds: 0.15
-  intraday_scan_limit: 12
-  min_rvol_history_days: 5
-  output_dir: output
-  state_dir: state
-  # Whole-run safety gate is based on current daily-price availability.
-  # Missing fundamentals lower each stock's coverage instead of blocking all alerts.
-  min_price_data_success_ratio: 0.70
-  enable_sec_fallback: true
-  sec_user_agent_default: "growth-quant-alert/1.1 github.com/namo12669-stack/growth-quant-alert"
+  allow_bearish: true
+signals:
+  divergence:
+    enabled: true
+    rsi_period: 14
+    pivot_left: 3
+    pivot_right: 3
+    min_pivot_gap: 5
+    max_pivot_gap: 45
+    max_confirmation_age: 2
+    min_price_change: 0.005
+    min_rsi_difference: 5.0
+    bullish_rsi_max: 40.0
+    bearish_rsi_min: 60.0
+  breakout:
+    enabled: true
+    lookback: 20
+    buffer: 0.001
+    min_rvol: 1.5
+    min_range_position: 0.70
+    squeeze_lookback: 120
+    squeeze_percentile: 0.20
+  relative_strength:
+    enabled: true
+    lookback: 63
+    return_window: 20
+    min_excess_return: 0.03
+    trend_window: 50
+  intraday_breakout:
+    enabled: true
+    interval_minutes: 15
+    min_elapsed_minutes: 60
+    prior_sessions: 20
+    min_comparable_sessions: 8
+    min_rvol: 1.5
+    min_range_position: 0.75
+    require_above_vwap: true
+relationships:
+  correction: fdr_by
+  # Candidate list is fixed in universe.yaml, not selected from today's winners.
+  pairs:
+    enabled: true
+    formation_sessions: 252
+    validation_sessions: 63
+    max_adjusted_p: 0.05
+    i1_level_min_p: 0.05
+    diff_stationarity_max_p: 0.05
+    validation_adf_max_p: 0.10
+    half_life_min: 2.0
+    half_life_max: 45.0
+    max_beta_drift: 0.35
+    min_validation_std_ratio: 0.5
+    max_validation_std_ratio: 2.0
+    entry_z: 2.0
+    max_z: 3.5
+  lead_lag:
+    enabled: true
+    initial_train: 252
+    validation_sessions: 63
+    max_adjusted_p: 0.05
+    min_oos_mse_improvement: 0.02
+    min_oos_correlation: 0.10
+    min_positive_coefficient_fraction: 0.80
+    min_leader_return: 0.02
+    min_predicted_return: 0.005
+    min_incremental_return: 0.003
+    hac_lags: 5

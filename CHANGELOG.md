@@ -1,13 +1,13 @@
-# Changelog
+# V2.0.0
 
-## 1.1.0
-
-- Added SEC EDGAR Company Facts fallback for filed income statement, cash-flow and balance-sheet fields when Yahoo statement tables are missing.
-- Added yfinance `fast_info` fallback for market cap/currency when full `get_info()` is unavailable.
-- Changed whole-run data-quality gate to current price availability instead of requiring a current statement for every ticker.
-- Missing optional fundamentals now reduce per-stock factor coverage and confidence instead of automatically excluding the whole universe.
-- Added HIGH / MEDIUM / LOW / INSUFFICIENT confidence labels based on factor coverage.
-- Missing market cap, quote currency, analyst revisions and statements are surfaced as explicit data warnings.
-- Incompatible V1.0 fundamental caches are invalidated automatically.
-- Telegram/GitHub summary now reports Price usable and Fundamental usable separately and identifies the fundamental source.
-- No broker/order functionality was added.
+- Replaced the fundamental composite ranking path with five explicit signal families.
+- Removed the speculative +/-4% price-movement-only alert.
+- Added confirmed daily RSI divergence, daily/intraday breakout-volume checks, and ratio-based relative strength.
+- Added frozen-formation pair spread screens with separate holdout validation and multiple-testing adjustment.
+- Added true one-session lead-lag models, chronological held-out predictions, baseline comparison, and horizon checks.
+- No .info, financial-statement, analyst-revision or SEC requests in the live signal path.
+- No fabricated fundamental/catalyst scores or inferred news events.
+- Added point-in-time bar cutoff, missing-session controls, split review, same-clock intraday RVOL, and publication-time rechecks.
+- Added all-candidate relationship audit, reason-level diagnostics, successful-send journal, and descriptive forward outcomes.
+- Isolated V2 modules, tests and state from V1 remnants; retained the same workflow file path and Telegram secrets.
+- Added deterministic synthetic demo fixtures and offline tests. Synthetic model outcomes are NOT live performance claims.

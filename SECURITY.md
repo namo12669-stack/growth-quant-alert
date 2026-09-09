@@ -1,22 +1,28 @@
-# Security and data handling
+# Security and operational scope
 
-Keep this repository and its artifacts private for personal research. Do not commit tokens,
-chat IDs, downloaded market data, local state, or financial account details. There is no broker
-integration and no reason to provide broker credentials to this project.
+This program reads public market data and sends research messages to your configured Telegram
+chat. It does not request broker credentials, place orders, or automatically change repository settings.
+It requires no SEC secret and no personal access token. The GitHub-provided token is used read-only
+for retrieving previous state artifacts.
 
-Use a new dedicated Telegram bot. Store the token and chat ID in repository Actions secrets.
-The setup helper sends the chat ID only to a uniquely identified private chat and refuses an
-existing webhook. Rotate any exposed bot token through BotFather.
+Keep `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` only in repository Actions secrets or private
+local environment variables. Never commit them. The code deliberately avoids echoing token-bearing
+Telegram URLs and does not blindly retry uncertain sendMessage network timeouts.
 
-Network requests occur only to the configured market-data adapter, Telegram Bot API and
-GitHub artifact API. Dependencies have their own upstream behavior and data terms. Review
-updates before merging. Action version tags and dependency version ranges are not a cryptographic
-supply-chain lock; pin reviewed action SHAs and a tested dependency lock for stronger assurance.
+Use a dedicated bot and private repository. Artifact data includes your watchlist, selected events,
+input snapshots and model diagnostics; raw public price data can still have redistribution restrictions.
+Downloaded state artifacts are treated as untrusted: fixed allowlist, path-traversal checks,
+size limit, and workflow/default-branch checks before restoration.
 
-No token-bearing Telegram request exception is printed. CSV string fields are neutralized
-against spreadsheet-formula interpretation. GitHub summaries use escaped code blocks. Artifact
-extraction rejects traversal/unexpected file types and oversized uncompressed archives.
+Telegram delivery and GitHub artifact persistence are separate systems. Exactly-once delivery is
+not guaranteed under partial sends, unknown timeout outcomes, canceled workflows, artifact expiry,
+or manual deletion of state. Acknowledged sends are journaled individually. Check Telegram before
+retrying a failed/uncertain run.
 
-Exactly-once Telegram delivery and durable state are not guaranteed. Artifact restoration
-errors stop scanning. Deleting or expiring artifacts resets history. A private repository still
-requires least-privilege collaborator access and control of the bot account.
+Workflows serialize V2 scans, use read-only permissions and bounded job timeouts, and do not expose
+secrets to pull-request test jobs. Action dependencies use maintained major versions; Python
+requirements are bounded and actual runner versions are recorded. Review dependency updates before
+merging. This project is not a security-audited application.
+
+The builder could execute offline tests, not live Yahoo/Telegram calls or a real GitHub workflow.
+No bot was connected and no repository was modified as part of preparing this downloadable package.
