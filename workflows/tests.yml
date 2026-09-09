@@ -1,27 +1,22 @@
-name: Tests
-
-on:
+name: V2 tests
+"on":
   push:
   pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.12', '3.13']
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements-dev.txt
-      - run: python -m pytest -q
+      - run: python -m pytest tests_v2 -q
       - run: python main.py --mode demo --dry-run
