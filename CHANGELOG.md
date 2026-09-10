@@ -1,13 +1,17 @@
-# V2.0.0
+# Changelog
 
-- Replaced the fundamental composite ranking path with five explicit signal families.
-- Removed the speculative +/-4% price-movement-only alert.
-- Added confirmed daily RSI divergence, daily/intraday breakout-volume checks, and ratio-based relative strength.
-- Added frozen-formation pair spread screens with separate holdout validation and multiple-testing adjustment.
-- Added true one-session lead-lag models, chronological held-out predictions, baseline comparison, and horizon checks.
-- No .info, financial-statement, analyst-revision or SEC requests in the live signal path.
-- No fabricated fundamental/catalyst scores or inferred news events.
-- Added point-in-time bar cutoff, missing-session controls, split review, same-clock intraday RVOL, and publication-time rechecks.
-- Added all-candidate relationship audit, reason-level diagnostics, successful-send journal, and descriptive forward outcomes.
-- Isolated V2 modules, tests and state from V1 remnants; retained the same workflow file path and Telegram secrets.
-- Added deterministic synthetic demo fixtures and offline tests. Synthetic model outcomes are NOT live performance claims.
+## 1.1.0 - 2026-09-10
+
+- Replaced Binance USD-M live/archive dependency with Coinbase Exchange public spot OHLCV after GitHub runner HTTP 451 failures.
+- Historical and live research now use the same `coinbase_exchange_spot` venue.
+- Symbols changed to BTC-USD with ETH-USD, SOL-USD, LINK-USD, ADA-USD and LTC-USD peers.
+- Pair-spread relationships now create BTC-direction signals only; no fabricated companion short leg or perpetual funding model on spot data.
+- Historical evidence target changed from 90% to 80% lower-bound target as requested; still not a next-trade probability.
+- Added public level-1 spread gate, provider diagnostics for every configured product, paginated candle downloads and normalized CSV SHA256 manifest.
+- Cached processed data can be reused only when manifest/range/symbol/hash checks pass.
+- Updated Telegram wording and research report for spot data.
+- Offline suite: 98 tests passing at build time.
+
+## 1.0.0
+
+Initial research-first BTC 1H prototype.

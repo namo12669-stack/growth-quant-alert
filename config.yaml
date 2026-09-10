@@ -1,97 +1,89 @@
-model: quant-signals-v2.0.0
-calendar: XNYS
-schedule:
-  earliest_minutes_before: 65
-  latest_minutes_before: 10
-  daily_close_grace_minutes: 20
-provider:
-  batch_size: 12
-  threads: 2
-  pause_seconds: 1.0
-  individual_retry_limit: 8
-  daily_period: 2y
-  intraday_period: 1mo
-  timeout_seconds: 20
-  save_input_snapshots: true
-quality:
-  min_daily_bars: 100
-  completeness_window: 120
-  min_completeness: 0.98
-  min_price: 5.0
-  min_average_dollar_volume: 10000000
-  min_universe_fraction: 0.50
-  min_universe_count: 3
-  max_intraday_age_minutes: 25
-  split_cooldown_sessions: 5
-alerts:
-  max_signals: 8
-  max_per_ticker: 2
-  cooldown_hours: 48
-  send_empty_summary: true
-  allow_bearish: true
+project: btc-quant-bot2
+version: 1.1.0
+data:
+  venue: coinbase_exchange_spot
+  bitcoin: BTC-USD
+  peers: [ETH-USD, SOL-USD, LINK-USD, ADA-USD, LTC-USD]
+  interval: 1h
+  # All listed peers have long Coinbase history by this window; exact continuity
+  # is verified at download time and the research aborts rather than forward-fill.
+  start: '2022-01-01'
+  validation_start: '2024-01-01'
+  test_start: '2025-01-01'
+  end_exclusive: '2026-09-01'
+  live_bars: 3200
+  timeout_seconds: 25
+  retries: 3
+  pause_seconds: 0.18
+execution:
+  # Generic research assumptions, NOT Coinbase account-specific fees.
+  fee_bps_per_side: 6.0
+  slippage_bps_per_side: 4.0
+  stress_multiplier: 2.0
+  # Signal candle opens at T and closes T+1h; scheduled alert runs after close.
+  # The simulated fill is T+2h so the backtest does not backdate execution.
+  entry_delay_bars: 2
+  close_exit_delay_bars: 2
+  gross_exposure: 1.0
+  cooldown_bars: 6
+  funding_required: false
+  max_live_spread_bps: 12.0
+  max_alert_delay_minutes: 25
 signals:
-  divergence:
-    enabled: true
-    rsi_period: 14
-    pivot_left: 3
-    pivot_right: 3
-    min_pivot_gap: 5
-    max_pivot_gap: 45
-    max_confirmation_age: 2
-    min_price_change: 0.005
-    min_rsi_difference: 5.0
-    bullish_rsi_max: 40.0
-    bearish_rsi_min: 60.0
-  breakout:
-    enabled: true
-    lookback: 20
-    buffer: 0.001
-    min_rvol: 1.5
-    min_range_position: 0.70
-    squeeze_lookback: 120
-    squeeze_percentile: 0.20
-  relative_strength:
-    enabled: true
-    lookback: 63
-    return_window: 20
-    min_excess_return: 0.03
-    trend_window: 50
-  intraday_breakout:
-    enabled: true
-    interval_minutes: 15
-    min_elapsed_minutes: 60
-    prior_sessions: 20
-    min_comparable_sessions: 8
-    min_rvol: 1.5
-    min_range_position: 0.75
-    require_above_vwap: true
-relationships:
-  correction: fdr_by
-  # Candidate list is fixed in universe.yaml, not selected from today's winners.
-  pairs:
-    enabled: true
-    formation_sessions: 252
-    validation_sessions: 63
-    max_adjusted_p: 0.05
-    i1_level_min_p: 0.05
-    diff_stationarity_max_p: 0.05
-    validation_adf_max_p: 0.10
-    half_life_min: 2.0
-    half_life_max: 45.0
-    max_beta_drift: 0.35
-    min_validation_std_ratio: 0.5
-    max_validation_std_ratio: 2.0
-    entry_z: 2.0
-    max_z: 3.5
-  lead_lag:
-    enabled: true
-    initial_train: 252
-    validation_sessions: 63
-    max_adjusted_p: 0.05
-    min_oos_mse_improvement: 0.02
-    min_oos_correlation: 0.10
-    min_positive_coefficient_fraction: 0.80
-    min_leader_return: 0.02
-    min_predicted_return: 0.005
-    min_incremental_return: 0.003
-    hac_lags: 5
+  families: [pair_spread, lead_lag, divergence, breakout]
+  refit_hours: 168
+  pair_formation_hours: 720
+  pair_entry_z: 2.25
+  pair_exit_z: 0.30
+  pair_stop_z: 3.75
+  pair_coint_p: 0.01
+  pair_min_half_life: 2.0
+  pair_max_half_life: 120.0
+  pair_min_return_correlation: 0.30
+  # In v1.1 pair_spread is a BTC DIRECTION signal derived from the relationship;
+  # no short companion leg or borrow cost is modeled.
+  pair_max_holding_hours: 24
+  lead_formation_hours: 2160
+  lead_inner_test_hours: 360
+  lead_horizon_hours: 6
+  lead_min_mse_improvement: 0.02
+  lead_min_inner_ic: 0.05
+  lead_forecast_cost_multiple: 3.0
+  lead_forecast_sigma_multiple: 0.50
+  pivot_left: 3
+  pivot_right: 3
+  pivot_min_gap: 6
+  pivot_max_gap: 72
+  divergence_min_rsi_delta: 5.0
+  divergence_min_price_fraction: 0.002
+  breakout_hours: 48
+  breakout_rvol: 1.5
+  max_atr_fraction: 0.03
+  directional_max_holding_hours: 24
+selection:
+  min_validation_trades: 60
+  min_validation_profit_factor: 1.05
+  min_validation_positive_month_fraction: 0.50
+  criterion: daily_net_sharpe
+proof_gate:
+  # This is a conservative HISTORICAL win-rate evidence threshold, not an 80%
+  # probability forecast for the next trade.
+  minimum_win_rate_lower_bound: 0.80
+  minimum_test_trades: 150
+  minimum_direction_trades: 60
+  minimum_test_calendar_months: 12
+  minimum_active_weeks: 24
+  minimum_direction_active_weeks: 12
+  minimum_profit_factor: 1.20
+  maximum_drawdown: 0.25
+  minimum_positive_month_fraction: 0.58
+  family_alpha: 0.05
+  bootstrap_repetitions: 2000
+  confidence_checks: 3
+  max_evidence_age_days: 45
+  seed: 71129
+alerts:
+  default_mode: strict
+  state_branch: btc-bot2-state
+  heartbeat_hour_utc: 0
+  paper_mode_available_manually: true

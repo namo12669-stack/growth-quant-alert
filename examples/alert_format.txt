@@ -1,0 +1,8 @@
+EXAMPLE ONLY - NOT A LIVE SIGNAL
+BTC QUANT BOT 2 v1.1 | CLOSED 1H | COINBASE SPOT DATA
+BTC: BUY (LONG)
+Signal: lead_lag
+Companion/context: ETH-USD
+Historical lower-bound evidence: shown only after a real holdout run
+Next-trade probability: NOT ESTIMATED
+No broker connection. No order placed.

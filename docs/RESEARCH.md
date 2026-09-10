@@ -1,78 +1,32 @@
-# Research and implementation sources
+# Research notes for BTC Quant Bot 2 v1.1
 
-These are sources for concepts and APIs, NOT proof that the exact V2 rules are profitable.
-The project does not reproduce published portfolios, claim their returns, or assert that any
-configured present-day ticker pair is valid. Research descriptions below refer to the source
-abstracts/documentation consulted; no claim is made to have replicated the full studies.
+## Design conclusions from the literature
 
-## Technical pattern recognition
+The project treats correlation, cointegration, lead-lag, momentum and divergence as hypotheses that require out-of-sample validation rather than as automatic edges. Crypto relationships can change across regimes, and trading costs can turn visually strong signals into negative strategies.
 
-Lo, Mamaysky and Wang (2000), *Foundations of Technical Analysis: Computational Algorithms,
-Statistical Inference, and Empirical Implementation*.
-https://www.nber.org/papers/w7613
+Important papers reviewed when designing the research protocol include:
 
-The paper supports defining chart patterns algorithmically and evaluating conditional outcomes
-rather than relying only on visual labels. Its pattern-recognition method is not V2's RSI-pivot
-algorithm. It does not establish profitability for the exact divergence/breakout thresholds here.
+- Sifat, Mohamad and Shariff, work on Bitcoin/Ethereum lead-lag relationships. The implication here is to test direction and stability instead of assuming one asset always leads.
+- Fil and Kristoufek, *Pairs Trading in Cryptocurrency Markets*. The implication is to separate formation from trading and explicitly include costs.
+- Research on cointegration/coupla-based crypto pairs. The implication is that statistical dependence alone is not a profit guarantee.
+- Hourly crypto strategy research showing that transaction costs and directional market exposure can dominate nominal pair effects.
+- Classical momentum and post-signal validation literature. The implication is to avoid look-ahead bias and to keep a genuine holdout.
 
-## Relative-value pairs
+## v1.1 provider choice
 
-Gatev, Goetzmann and Rouwenhorst, *Pairs Trading: Performance of a Relative Value Arbitrage Rule*,
-NBER working paper 1999; published version 2006.
-https://www.nber.org/papers/w7032
+v1.0's Binance USD-M endpoints returned HTTP 451 on the user's GitHub-hosted runner. v1.1 does not bypass that restriction. It changes both historical and live market data to Coinbase Exchange public spot OHLCV so the venue is consistent between research and alerts.
 
-The paper's matching rule uses distance in normalized historical price space. V2 instead uses
-an Engle-Granger/frozen-spread screening approach with a holdout. Thus it is conceptually related,
-not a replication, and the original returns must not be transferred to this package.
+Coinbase Exchange product-candle documentation:
+https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-candles
 
-## Lead-lag versus same-time correlation
+The endpoint documents a maximum of 300 candles per request. The downloader therefore paginates smaller windows, validates hourly continuity, and stores SHA256 hashes of normalized CSVs.
 
-Lo and MacKinlay, *When Are Contrarian Profits Due to Stock Market Overreaction?*, working paper
-1989; published version 1990.
-https://www.nber.org/papers/w2977
+## Why the peer is context, not a forced second trade
 
-Cross-autocovariances and lead-lag relations motivate testing chronological dependencies.
-They do not establish a current NVDA -> MRVL or OKLO -> SMR effect. V2 uses a predeclared
-one-session return regression and held-out prediction checks, not a causality claim.
+Using spot data while pretending to execute a frictionless short hedge would introduce an unmodeled borrow/funding assumption. v1.1 therefore asks a narrower question: does ETH/SOL/LINK/ADA/LTC information improve a BTC directional strategy? Pair spread and lead-lag can trigger BTC direction, but only BTC PnL is scored.
 
-## Statistical implementation
+## About the 80% target
 
-Statsmodels augmented Engle-Granger cointegration test:
-https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.coint.html
+The configured 80% threshold is deliberately a historical evidence gate, not an asserted next-trade probability. A high observed win rate can coexist with poor expectancy if losses are large; therefore the gate also checks stress-cost profitability, profit factor, drawdown, active weeks, months and both BUY/SELL subsets.
 
-The null is NO cointegration; the method assumes I(1) inputs. High return correlation is not
-a substitute for testing spread behavior. Finite-sample and time-series specification risks remain.
-
-Statsmodels multiple-testing implementation:
-https://www.statsmodels.org/stable/generated/statsmodels.stats.multitest.multipletests.html
-
-V2 defaults to Benjamini-Yekutieli (`fdr_by`) across the configured candidate family within one
-scan. This does not cover unlimited rescanning, subjective universe selection, parameter search,
-or misspecified p-values. Holdouts and multiple-testing adjustments reduce some failure modes,
-but cannot establish a usable economic edge by themselves.
-
-## Operational sources
-
-GitHub workflow syntax, location, scheduling and timezone:
-https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
-
-GitHub scheduled-event behavior and queue-delay limitations:
-https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
-
-GitHub secrets:
-https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions
-
-Telegram Bot API:
-https://core.telegram.org/bots/api
-
-Yfinance download API, multi-index shape, adjustment parameters and intraday constraints:
-https://ranaroussi.github.io/yfinance/reference/api/yfinance.download.html
-
-Yfinance status and data-use disclaimer:
-https://ranaroussi.github.io/yfinance/
-
-Exchange-calendar library:
-https://github.com/gerrymanoim/exchange_calendars
-
-Consult provider licensing before redistributing market data. Keep this personal research
-repository and its artifacts private. API availability and third-party service terms can change.
+No reviewed source establishes that this exact repository will win 80% of future 1h BTC trades. The real GitHub backtest and subsequent forward observations are required.
